@@ -1,3 +1,5 @@
 #pragma once
 
-int vision_create_thread();
+#include <pthread.h>
+
+pthread_t vision_create_thread(int priority, int *error);
