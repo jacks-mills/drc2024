@@ -1,8 +1,7 @@
 CC := gcc
 CFLAGS := -Wall -pedantic -std=gnu99 -g
-
 TARGET := robot
-SRCS := control.c
+SRCS := control.c \
 	vision.c vision.h \
 
 OBJS := $(patsubst %.c, %.o, $(filter %.c, $(SRCS)))
