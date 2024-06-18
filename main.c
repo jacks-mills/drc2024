@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 
+#include "control.h"
 #include "vision.h"
 
 #define VISION_PRIORITY 80
@@ -15,12 +16,10 @@ int main() {
         exit(1);
     }
 
-    int error;
-    pthread_t visionThread = vision_create_thread(VISION_PRIORITY, &error);
-    if (error) {
-        return error;
-    }
+    pthread_t controlThread = vision_create_thread(VISION_PRIORITY);
+    pthread_t visionThread = vision_create_thread(VISION_PRIORITY);
 
+    pthread_join(controlThread, NULL);
     pthread_join(visionThread, NULL);
 
     return 0;
