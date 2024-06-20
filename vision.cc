@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
 #include <pthread.h>
 #include <sched.h>
 #include <sys/mman.h>
@@ -92,7 +91,8 @@ static void *vision_thread(void *params) {
         struct timespec now;
         clock_gettime(CLOCK_MONOTONIC, &now);
 
-        long latency = (now.tv_sec - next_activation.tv_sec) * NSEC_PER_SEC + (now.tv_nsec - next_activation.tv_nsec);
+        long latency = (now.tv_sec - next_activation.tv_sec) * NSEC_PER_SEC 
+                     + (now.tv_nsec - next_activation.tv_nsec);
         printf(OUT_PREFIX "Latency:\t%li ns\n", latency);
 
         timespec_add_ns(&next_activation, delay);

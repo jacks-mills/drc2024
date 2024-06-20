@@ -1,18 +1,19 @@
-CC := gcc
-CFLAGS := -Wall -pedantic -std=gnu99 -g
-TARGET := robot
-SRCS := main.c \
-	control.c vision.h\
-	vision.c vision.h \
+CC := g++
+CPPFLAGS := -Wall -pedantic
 
-OBJS := $(patsubst %.c, %.o, $(filter %.c, $(SRCS)))
+SRCS := control.cc vision.h\
+	vision.cc vision.h \
+	main.cc
+TARG := robot
+
+OBJS := $(patsubst %.cc, %.o, $(filter %.cc, $(SRCS)))
 
 .PHONY: all clean
     
-all: $(TARGET)
+all: $(TARG)
     
 clean:
-	rm -f $(TARGET) $(OBJS)
+	rm -f $(TARG) $(OBJS)
     
-$(TARGET): $(OBJS)
-	$(CC) $(CFLAGS)   -o $@ $^
+$(TARG): $(OBJS)
+	$(CC) $(CPPFLAGS)   -o $@ $^

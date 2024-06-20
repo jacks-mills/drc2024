@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
 #include <pthread.h>
 #include <sched.h>
 #include <sys/mman.h>
