@@ -1,10 +1,11 @@
 C := gcc
 CFLAGS := -Wall -pedantic -std=gnu99 -g
 
-TARGET := robot
-SRCS := main.c
-
+SRCS := main.c \
+	control.c control.h \
+	vision.c vision.h
 OBJS := $(patsubst %.c, %.o, $(filter %.c, $(SRCS)))
+TARGET := robot
 
 .PHONY: all clean
 
