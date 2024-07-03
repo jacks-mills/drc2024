@@ -21,8 +21,13 @@ Y_MAX = 200
 
 
 def main():
-    q = open_queue(-1, 50)
-    print(STDOUT_PREFIX + f"opened queue \"{(str(q))}\"")
+    q = None
+    while (q == None):
+        q = open_queue(10, 200)
+        print(STDOUT_PREFIX + f"Failed to open queue \"{QUEUE_CONT_DATA_NAME}\"")
+        print(STDOUT_PREFIX + f"Retrying...")
+    
+    print(STDOUT_PREFIX + f"Opened queue \"{QUEUE_CONT_DATA_NAME}\"")
 
     count = 1
     while True:
@@ -62,7 +67,6 @@ def get_centroid():
 
 def create_message(x, y):
     return struct.pack("iii", SIGNITURE, x, y)
-
 
 if (__name__ == "__main__"):
     main()
