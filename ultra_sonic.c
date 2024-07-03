@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <mqueue.h>
 #include <errno.h>
+#include <stdbool.h>
 
 #define STDOUT_PREFIX "usnd: "
 #define STDERR_PREFIX "usnd: "
@@ -14,12 +15,17 @@
 #define QUEUE_CONT_DATA_ELMS 16
 #define QUEUE_CONT_DATA_SIZE 64
 
-// Distance range used to decided if to send a message
-#define MIN_DIST 0
-#define MAX_DIST 100
+#define SIGNITURE 2
+
+#define ALERT_DIST 100
+
+struct Message {
+    int sender;
+    int distance;
+};
 
 mqd_t open_queue(int attempts, struct timespec *delay);
-itn get_distance();
+int get_distance();
 
 int main(int argc, char **argv) {
     struct timespec delay;
@@ -41,9 +47,21 @@ int main(int argc, char **argv) {
     printf(STDOUT_PREFIX "Opened queue \"%s\"\n", QUEUE_CONT_DATA_NAME);
 
 
-    srand(time(NULL));
+    delay.tv_sec = 1;
+    delay.tv_nsec = 0;
+
     while(1) {
         int distance = get_distance();
+
+        struct Message message;
+        message.sender = SIGNITURE;
+        message.distance = distance;
+
+        mq_send(dataQueue, (char *) &message, sizeof(message), 0);
+
+        printf(STDOUT_PREFIX "Sent %i\n", distance);
+
+        nanosleep(&delay, NULL);
     }
 }
 
@@ -66,4 +84,14 @@ mqd_t open_queue(int attempts, struct timespec *delay) {
     }
 
     return -1;
+}
+
+int get_distance() {
+    static bool randInitialised = false;
+    if (!randInitialised) {
+        srand(time(NULL));
+        randInitialised = true;
+    }
+        
+    return random() % 1000;
 }

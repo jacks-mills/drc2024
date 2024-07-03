@@ -37,7 +37,7 @@ def main():
 
         q.send(message)
 
-        print(STDOUT_PREFIX + f"sent ({x:>3}, {y:>3})")
+        print(STDOUT_PREFIX + f"Sent ({x:>3}, {y:>3})")
 
         count = count + 1
         sleep(1)
