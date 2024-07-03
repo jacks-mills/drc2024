@@ -8,18 +8,40 @@ int main(int argc, char **argv) {
 
     pid = fork();
     if (pid == 0) {
-        execl("/usr/bin/chrt", "chrt", "81", "./control", (char*) NULL);
-        perror("execl faialed");
+        execl(
+            "/usr/bin/chrt",
+            "chrt",
+            "81",
+            "./control",
+            (char*) NULL);
+        perror("control execl failed");
         exit(EXIT_FAILURE);
     }
 
     pid = fork();
     if (pid == 0) {
-        execl("/usr/bin/chrt", "chrt", "80", ".venv/drc2024/bin/python", "vision.py", (char*) NULL);
-        perror("execl faialed");
+        execl(
+            "/usr/bin/chrt",
+            "chrt",
+            "80",
+            ".venv/drc2024/bin/python",
+            "vision.py",
+            (char*) NULL);
+        perror("vision execl failed");
         exit(EXIT_FAILURE);
     }
 
+    pid = fork();
+    if (pid == 0) {
+        execl(
+            "/usr/bin/chrt",
+            "chrt",
+            "80",
+            "./ultra_sonic",
+            (char*) NULL);
+        perror("ultra sonic execl failed");
+        exit(EXIT_FAILURE);
+    }
     // wait for all child processes to terminate
     while (wait(NULL) > -1);
 
