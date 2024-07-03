@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
 
     pid = fork();
     if (pid == 0) {
-        execl("/usr/bin/chrt", "chrt", "80", "python", "vision.py", (char*) NULL);
+        execl("/usr/bin/chrt", "chrt", "80", ".venv/drc2024/bin/python", "vision.py", (char*) NULL);
         perror("execl faialed");
         exit(EXIT_FAILURE);
     }
