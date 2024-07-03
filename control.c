@@ -70,28 +70,19 @@ int main(int argc, char **argv) {
 
     int sender = SD_NONE;
  
-    struct timespec *timeout;
-    struct timespec maxTime;
+    struct timespec maxTimeout;
     maxTime.tv_sec = 100L * 365L * 24L * 60L * 60L;
     maxTime.tv_nsec = 999999999L;
 
     while (1) {
-        // On first pass, block until a message is received, then remove
-        // messages from the queue until it is empty.
-        sender = SD_VISN;
-        timeout = &maxTime;
+        sender = update_sense_data(&senseData, queue, &maxTimeout);;
         while (sender != SD_NONE) {
-            sender = update_sense_data(&senseData, queue, timeout);
-            timeout = NULL;
-
-            if (sender == SD_NONE) {
-                break;
-            }
-
             printf(
                 STDOUT_PREFIX 
                 "Received message from %s\n",
                 get_sender_str(sender));
+
+            sender = update_sense_data(&senseData, queue, NULL);;
         }
 
         printf(
