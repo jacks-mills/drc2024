@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <sched.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <mqueue.h>
