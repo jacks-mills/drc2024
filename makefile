@@ -1,7 +1,7 @@
 C := gcc
 CFLAGS := -Wall -pedantic -std=gnu99 -g
 
-TARGETS := start control
+TARGETS := start control ultra_sonic
 
 .PHONY: all clean
 
@@ -10,8 +10,5 @@ all: $(TARGETS)
 clean:
 	rm -f $(TARGETS) *.o
 
-start: start.o
-	$(CC) $(CFLAGS)   -o $@ $^
-
-control: control.o
+$(TAGETS): %: %.o
 	$(CC) $(CFLAGS)   -o $@ $^
