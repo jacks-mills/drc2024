@@ -11,6 +11,7 @@ int main(int argc, char **argv) {
         execl(
             "/usr/bin/chrt",
             "chrt",
+            "--fifo",
             "81",
             "./control",
             (char*) NULL);
@@ -23,6 +24,21 @@ int main(int argc, char **argv) {
         execl(
             "/usr/bin/chrt",
             "chrt",
+            "--fifo",
+            "80",
+            ".venv/drc2024/bin/python",
+            "driver.py",
+            (char*) NULL);
+        perror("vision execl failed");
+        exit(EXIT_FAILURE);
+    }
+
+    pid = fork();
+    if (pid == 0) {
+        execl(
+            "/usr/bin/chrt",
+            "chrt",
+            "--fifo",
             "80",
             ".venv/drc2024/bin/python",
             "vision.py",
@@ -36,12 +52,14 @@ int main(int argc, char **argv) {
         execl(
             "/usr/bin/chrt",
             "chrt",
+            "--fifo",
             "80",
             "./ultra_sonic",
             (char*) NULL);
         perror("ultra sonic execl failed");
         exit(EXIT_FAILURE);
     }
+
     // wait for all child processes to terminate
     while (wait(NULL) > -1);
 
