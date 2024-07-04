@@ -13,9 +13,13 @@
 #define STDOUT_PREFIX "cont: "
 #define STDERR_PREFIX "cont: "
 
-#define QUEUE_CONT_DATA_NAME "/DRC-CONT-DATA"
-#define QUEUE_CONT_DATA_ELMS 10
-#define QUEUE_CONT_DATA_SIZE 64
+#define QUEUE_READ_NAME "/DRC-CONT-DATA"
+#define QUEUE_READ_SIZE 64
+#define QUEUE_READ_ELMS 10
+
+#define QUEUE_WRITE_NAME "/DRC-DRIV-DATA"
+#define QUEUE_WRITE_SIZE 64
+#define SIGNITURE 3
 
 #define SNDR_NONE 0
 #define SNDR_VISN 1
@@ -40,23 +44,22 @@ struct State {
 };
 
 
-void unlink_data_queue();
+void unlink_read_queue();
 void attach_unlink_sig_handler();
-mqd_t open_queue();
-void update_sense_data(struct State *state, mqd_t dataQueue);
-
+mqd_t open_read_queue(char *qName);
+void update_sense_data(struct State *state, mqd_t readQueue);
 
 int main(int argc, char **argv) {
-    atexit(unlink_data_queue);
+    atexit(unlink_read_queue);
     attach_unlink_sig_handler();
 
-    mqd_t dataQueue = open_queue();
-    printf(STDOUT_PREFIX "Opened queue \"%s\"\n", QUEUE_CONT_DATA_NAME);
+    mqd_t readQueue = open_read_queue(QUEUE_READ_NAME);
+    printf(STDOUT_PREFIX "Opened queue \"%s\"\n", QUEUE_READ_NAME);
 
     struct State state;
     memset(&state, 0, sizeof(state));
     while (1) {
-        update_sense_data(&state, dataQueue);
+        update_sense_data(&state, readQueue);
 
         printf(
             STDOUT_PREFIX
@@ -87,9 +90,9 @@ static void timespec_sum(struct timespec *dest, const struct timespec *toAdd) {
     }
 }
 
-void unlink_data_queue() {
-    mq_unlink(QUEUE_CONT_DATA_NAME);
-    printf(STDOUT_PREFIX "Unlinked queue \"%s\"\n", QUEUE_CONT_DATA_NAME);
+void unlink_read_queue() {
+    mq_unlink(QUEUE_READ_NAME);
+    printf(STDOUT_PREFIX "Unlinked queue \"%s\"\n", QUEUE_READ_NAME);
 }
 
 void sig_handler_unlink_then_exit(int signum) {
@@ -115,15 +118,15 @@ void attach_unlink_sig_handler() {
     }
 }
 
-mqd_t open_queue() {
+mqd_t open_read_queue(char *qName) {
     mqd_t queue;
 
     struct mq_attr attr;
-    attr.mq_maxmsg = QUEUE_CONT_DATA_ELMS;
-    attr.mq_msgsize = QUEUE_CONT_DATA_SIZE;
+    attr.mq_maxmsg = QUEUE_READ_ELMS;
+    attr.mq_msgsize = QUEUE_READ_SIZE;
 
     queue = mq_open(
-        QUEUE_CONT_DATA_NAME,
+        qName,
         O_CREAT | O_RDONLY,
         S_IRWXU,
         &attr);
@@ -163,7 +166,7 @@ int read_message(char *message, mqd_t queue, const struct timespec *timeout) {
     bytesRead = mq_timedreceive(
         queue,
         message,
-        QUEUE_CONT_DATA_SIZE,
+        QUEUE_READ_SIZE,
         NULL,
         &absTimeout);
 
@@ -190,17 +193,17 @@ char *get_sender_str(int s) {
     }
 }
 
-void update_sense_data(struct State *state, mqd_t dataQueue) {
+void update_sense_data(struct State *state, mqd_t readQueue) {
     int sender;
     int bytesRead = 0;
-    char message[QUEUE_CONT_DATA_SIZE];
+    char message[QUEUE_READ_SIZE];
 
     // 100 year timeout
     struct timespec maxTimeout;
     maxTimeout.tv_sec = 100L * 365L * 24L * 60L * 60L;
     maxTimeout.tv_nsec = 999999999L;
 
-    bytesRead = read_message(message, dataQueue, &maxTimeout);
+    bytesRead = read_message(message, readQueue, &maxTimeout);
     while (bytesRead > 0) {
         sender = extract_data(state, message);
         printf(
@@ -208,7 +211,7 @@ void update_sense_data(struct State *state, mqd_t dataQueue) {
             "Received message from %s\n",
             get_sender_str(sender));
 
-        bytesRead = read_message(message, dataQueue, NULL);
+        bytesRead = read_message(message, readQueue, NULL);
     }
 }
 
