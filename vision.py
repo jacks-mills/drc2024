@@ -5,7 +5,6 @@ import random
 import sys
 
 QUEUE_CONT_DATA_NAME = "/DRC-CONT-DATA"
-QUEUE_CONT_DATA_ELMS = 16
 QUEUE_CONT_DATA_SIZE = 64
 
 SIGNITURE = 1
@@ -21,11 +20,11 @@ Y_MAX = 200
 
 
 def main():
-    q = None
+    q = open_queue(10, 200)
     while (q == None):
-        q = open_queue(10, 200)
         print(STDOUT_PREFIX + f"Failed to open queue \"{QUEUE_CONT_DATA_NAME}\"")
         print(STDOUT_PREFIX + f"Retrying...")
+        q = open_queue(10, 200)
     
     print(STDOUT_PREFIX + f"Opened queue \"{QUEUE_CONT_DATA_NAME}\"")
 
@@ -48,10 +47,6 @@ def open_queue(attempts, delay):
         try:
             return MessageQueue(
                 QUEUE_CONT_DATA_NAME,
-                flags = 0,
-                mode = 0o700,
-                max_messages = QUEUE_CONT_DATA_ELMS,
-                max_message_size = QUEUE_CONT_DATA_SIZE,
                 read = False,
                 write = True)
         except ExistentialError:
