@@ -42,54 +42,24 @@ struct State {
 
 void unlink_data_queue();
 void attach_unlink_sig_handler();
-int update_sense_data(
-        struct State *state,
-        mqd_t dataQueue,
-        const struct timespec *timeout);
-char *get_sender_str(int s);
+mqd_t open_queue();
+void update_sense_data(struct State *state, mqd_t dataQueue);
+
 
 int main(int argc, char **argv) {
     atexit(unlink_data_queue);
     attach_unlink_sig_handler();
 
-    struct mq_attr attr;
-    attr.mq_maxmsg = QUEUE_CONT_DATA_ELMS; 
-    attr.mq_msgsize = QUEUE_CONT_DATA_SIZE; 
-
-    mqd_t dataQueue = mq_open(
-        QUEUE_CONT_DATA_NAME, 
-        O_CREAT | O_RDONLY,
-        S_IRWXU,
-        &attr);
-
-    if (dataQueue == (mqd_t) -1) {
-        perror(STDERR_PREFIX "mq_open failed");
-        exit(EXIT_FAILURE);
-    }
-
+    mqd_t dataQueue = open_queue();
     printf(STDOUT_PREFIX "Opened queue \"%s\"\n", QUEUE_CONT_DATA_NAME);
 
     struct State state;
-
-    int sender = SNDR_NONE;
- 
-    struct timespec maxTimeout;
-    maxTimeout.tv_sec = 100L * 365L * 24L * 60L * 60L;
-    maxTimeout.tv_nsec = 999999999L;
-
+    memset(&state, 0, sizeof(state));
     while (1) {
-        sender = update_sense_data(&state, dataQueue, &maxTimeout);;
-        while (sender != SNDR_NONE) {
-            printf(
-                STDOUT_PREFIX 
-                "Received message from %s\n",
-                get_sender_str(sender));
-
-            sender = update_sense_data(&state, dataQueue, NULL);;
-        }
+        update_sense_data(&state, dataQueue);
 
         printf(
-            STDOUT_PREFIX 
+            STDOUT_PREFIX
             "Sense data (%i, %i, %i)\n",
             state.laneCentreX,
             state.laneCentreY,
@@ -145,36 +115,32 @@ void attach_unlink_sig_handler() {
     }
 }
 
-int update_sense_data(
-        struct State *state,
-        mqd_t dataQueue,
-        const struct timespec *timeout) {
-    size_t messageLen = 0;
-    char message[QUEUE_CONT_DATA_SIZE];
+mqd_t open_queue() {
+    mqd_t queue;
 
-    struct timespec absTimeout;
-    clock_gettime(CLOCK_REALTIME, &absTimeout); 
-    timespec_sum(&absTimeout, timeout);
+    struct mq_attr attr;
+    attr.mq_maxmsg = QUEUE_CONT_DATA_ELMS;
+    attr.mq_msgsize = QUEUE_CONT_DATA_SIZE;
 
-    messageLen = mq_timedreceive(
-        dataQueue,
-        message,
-        QUEUE_CONT_DATA_SIZE,
-        NULL,
-        &absTimeout);
+    queue = mq_open(
+        QUEUE_CONT_DATA_NAME,
+        O_CREAT | O_RDONLY,
+        S_IRWXU,
+        &attr);
 
-    if (messageLen == -1) {
-        if (errno == ETIMEDOUT) {
-            return SNDR_NONE;
-        }
-
-        perror(STDERR_PREFIX "mq_receive failed");
+    if (queue == (mqd_t) -1) {
+        perror(STDERR_PREFIX "mq_open failed");
         exit(EXIT_FAILURE);
     }
 
+    return queue;
+}
+
+int extract_data(struct State *state, char *message) {
     int sender = GET_SENDER(message);
     switch(sender) {
         default:
+            sender = SNDR_NONE;
             break;
         case SNDR_VISN:
             state->laneCentreX = GET_LANE_CENT_X(message);
@@ -184,8 +150,33 @@ int update_sense_data(
             state->distInFront = GET_DIST_IN_FRONT(message);
             break;
     }
-
     return sender;
+}
+
+int read_message(char *message, mqd_t queue, const struct timespec *timeout) {
+    int bytesRead = 0;
+
+    struct timespec absTimeout;
+    clock_gettime(CLOCK_REALTIME, &absTimeout);
+    timespec_sum(&absTimeout, timeout);
+
+    bytesRead = mq_timedreceive(
+        queue,
+        message,
+        QUEUE_CONT_DATA_SIZE,
+        NULL,
+        &absTimeout);
+
+    if (bytesRead == -1) {
+        if (errno == ETIMEDOUT) {
+            return 0;
+        }
+
+        perror(STDERR_PREFIX "mq_receive failed");
+        exit(EXIT_FAILURE);
+    }
+
+    return bytesRead;
 }
 
 char *get_sender_str(int s) {
@@ -198,4 +189,27 @@ char *get_sender_str(int s) {
             return SNDR_USND_STR;
     }
 }
+
+void update_sense_data(struct State *state, mqd_t dataQueue) {
+    int sender;
+    int bytesRead = 0;
+    char message[QUEUE_CONT_DATA_SIZE];
+
+    // 100 year timeout
+    struct timespec maxTimeout;
+    maxTimeout.tv_sec = 100L * 365L * 24L * 60L * 60L;
+    maxTimeout.tv_nsec = 999999999L;
+
+    bytesRead = read_message(message, dataQueue, &maxTimeout);
+    while (bytesRead > 0) {
+        sender = extract_data(state, message);
+        printf(
+            STDOUT_PREFIX
+            "Received message from %s\n",
+            get_sender_str(sender));
+
+        bytesRead = read_message(message, dataQueue, NULL);
+    }
+}
+
 
