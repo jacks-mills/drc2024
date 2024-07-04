@@ -4,13 +4,12 @@ import struct
 import random
 import sys
 
-QUEUE_CONT_DATA_NAME = "/DRC-CONT-DATA"
-QUEUE_CONT_DATA_SIZE = 64
+STDOUT_PREFIX = "visn: "
+STDOUT_PREFIX = "visn: "
 
+QUEUE_WRITE_NAME = "/DRC-CONT-DATA"
+QUEUE_WRITE_SIZE = 64
 SIGNITURE = 1
-
-STDOUT_PREFIX = "visn: "
-STDOUT_PREFIX = "visn: "
 
 X_MIN = 0
 X_MAX = 400
@@ -20,47 +19,39 @@ Y_MAX = 200
 
 
 def main():
-    q = open_queue(10, 200)
-    while (q == None):
-        print(STDOUT_PREFIX + f"Failed to open queue \"{QUEUE_CONT_DATA_NAME}\"")
-        print(STDOUT_PREFIX + f"Retrying...")
-        q = open_queue(10, 200)
-    
-    print(STDOUT_PREFIX + f"Opened queue \"{QUEUE_CONT_DATA_NAME}\"")
+    writeQueue = open_queue_write(QUEUE_WRITE_NAME)
+    print(STDOUT_PREFIX + f"Opened queue \"{QUEUE_WRITE_NAME}\"")
 
-    count = 1
     while True:
         x, y = get_centroid()
 
-        message = create_message(x, y)
+        message = write_message(x, y)
 
-        q.send(message)
+        writeQueue.send(message)
 
         print(STDOUT_PREFIX + f"Sent ({x:>3}, {y:>3})")
 
-        count = count + 1
         sleep(1)
 
 
-def open_queue(attempts, delay):
-    while (attempts > 0 or attempts == -1):
+def open_queue_write(qName):
+    while True:
         try:
             return MessageQueue(
-                QUEUE_CONT_DATA_NAME,
+                qName,
                 read = False,
                 write = True)
         except ExistentialError:
-            sleep(delay / 1000)
-            if (attempts > 0):
-                attempts = attempts - 1
-    return None
+            print(STDOUT_PREFIX + f"Failed to open queue \"{QUEUE_WRITE_NAME}\"")
+            print(STDOUT_PREFIX + f"Retrying...")
+            sleep(0.2)
 
 
 def get_centroid():
     return random.randint(X_MIN, X_MAX), random.randint(Y_MIN, Y_MAX)
 
 
-def create_message(x, y):
+def write_message(x, y):
     return struct.pack("iii", SIGNITURE, x, y)
 
 if (__name__ == "__main__"):

@@ -11,78 +11,51 @@
 #define STDOUT_PREFIX "usnd: "
 #define STDERR_PREFIX "usnd: "
 
-#define QUEUE_CONT_DATA_NAME "/DRC-CONT-DATA"
-#define QUEUE_CONT_DATA_SIZE 64
-
+#define QUEUE_WRITE_NAME "/DRC-CONT-DATA"
+#define QUEUE_WRITE_SIZE 64
 #define SIGNITURE 2
 
-#define ALERT_DIST 100
-
-struct Message {
-    int sender;
-    int distance;
-};
-
-mqd_t open_queue(int attempts, struct timespec *delay);
+mqd_t open_write_queue(char *qName);
 int get_distance();
+void write_message(char *buff, int distance);
 
 int main(int argc, char **argv) {
-    struct timespec delay;
-    delay.tv_sec = 0;
-    delay.tv_nsec = 200000000; // 200ms
-    
-    mqd_t dataQueue = open_queue(10, &delay);
-    while (dataQueue == (mqd_t) -1) {
-        printf(STDOUT_PREFIX "Failed to open queue \"%s\"\n", QUEUE_CONT_DATA_NAME);
-        printf(STDOUT_PREFIX "Retrying\n");
-        dataQueue = open_queue(10, &delay);
-    }
+    mqd_t writeQueue = open_write_queue(QUEUE_WRITE_NAME);
+    printf(STDOUT_PREFIX "Opened queue \"%s\"\n", QUEUE_WRITE_NAME);
 
-    if (dataQueue == (mqd_t) -1) {
-        perror(STDERR_PREFIX "mq_open failed");
-        exit(EXIT_FAILURE);
-    }
-
-    printf(STDOUT_PREFIX "Opened queue \"%s\"\n", QUEUE_CONT_DATA_NAME);
-
-
-    delay.tv_sec = 1;
-    delay.tv_nsec = 0;
-
+    char message[QUEUE_WRITE_SIZE];
     while(1) {
         int distance = get_distance();
 
-        struct Message message;
-        message.sender = SIGNITURE;
-        message.distance = distance;
-
-        mq_send(dataQueue, (char *) &message, sizeof(message), 0);
+        write_message(message, distance);
+        
+        mq_send(writeQueue, (char *) &message, sizeof(message), 0);
 
         printf(STDOUT_PREFIX "Sent %i\n", distance);
 
+        struct timespec delay = {1, 0}; // 1 second
         nanosleep(&delay, NULL);
     }
 }
 
-mqd_t open_queue(int attempts, struct timespec *delay) {
-    mqd_t q;
-    while (attempts > 0 || attempts == -1) {
-        q = mq_open(QUEUE_CONT_DATA_NAME, O_WRONLY);
-
-        if (q != (mqd_t) -1) {
-            return q;
-        }
-
+mqd_t open_write_queue(char *qName) {
+    mqd_t q = mq_open(qName, O_WRONLY);
+    while (q == -1) {
         if (q == (mqd_t) -1 && errno != ENOENT) {
             perror(STDERR_PREFIX "mq_open failed");
             exit(EXIT_FAILURE);
         }
 
-        nanosleep(delay, NULL);
-        attempts--;
+        printf(STDOUT_PREFIX "Failed to open queue \"%s\"\n", qName);
+        printf(STDOUT_PREFIX "Retrying\n");
+
+        struct timespec delay = {0, 200000000}; // 200 ms
+        nanosleep(&delay, NULL);
+
+        q = mq_open(qName, O_WRONLY);
     }
 
-    return -1;
+    return q;
 }
 
 int get_distance() {
@@ -93,4 +66,9 @@ int get_distance() {
     }
         
     return random() % 1000;
+}
+
+void write_message(char *buff, int distance) {
+    ((int *) buff)[0] = SIGNITURE;
+    ((int *) buff)[1] = distance;
 }
