@@ -12,7 +12,6 @@
 #define STDERR_PREFIX "usnd: "
 
 #define QUEUE_CONT_DATA_NAME "/DRC-CONT-DATA"
-#define QUEUE_CONT_DATA_ELMS 16
 #define QUEUE_CONT_DATA_SIZE 64
 
 #define SIGNITURE 2
@@ -32,11 +31,11 @@ int main(int argc, char **argv) {
     delay.tv_sec = 0;
     delay.tv_nsec = 200000000; // 200ms
     
-    mqd_t dataQueue = -1;
+    mqd_t dataQueue = open_queue(10, &delay);
     while (dataQueue == (mqd_t) -1) {
-        dataQueue = open_queue(10, &delay);
         printf(STDOUT_PREFIX "Failed to open queue \"%s\"\n", QUEUE_CONT_DATA_NAME);
         printf(STDOUT_PREFIX "Retrying\n");
+        dataQueue = open_queue(10, &delay);
     }
 
     if (dataQueue == (mqd_t) -1) {
