@@ -13,21 +13,25 @@
 #define STDOUT_PREFIX "cont: "
 #define STDERR_PREFIX "cont: "
 
+#define SNDR_NONE 0
+#define SNDR_VISN 1
+#define SNDR_USND 2
+#define SNDR_CONT 3
+#define SNDR_DRIV 4
+
+#define SNDR_UNKN_STR "unknown"
+#define SNDR_VISN_STR "visn"
+#define SNDR_USND_STR "usnd"
+#define SNDR_CONT_STR "cont"
+#define SNDR_DRIV_STR "driv"
+
 #define QUEUE_READ_NAME "/DRC-CONT-DATA"
 #define QUEUE_READ_SIZE 64
 #define QUEUE_READ_ELMS 10
 
 #define QUEUE_WRITE_NAME "/DRC-DRIV-DATA"
 #define QUEUE_WRITE_SIZE 64
-#define SIGNITURE 3
-
-#define SNDR_NONE 0
-#define SNDR_VISN 1
-#define SNDR_USND 2
-
-#define SNDR_UNKN_STR "unknown"
-#define SNDR_VISN_STR "visn"
-#define SNDR_USND_STR "usnd"
+#define SIGNITURE SNDR_CONT
 
 #define GET_NTH_INT(buffer, n)      (((int *) buffer)[n])
 #define GET_SENDER(message)         GET_NTH_INT(message, 0)
@@ -55,6 +59,7 @@ int main(int argc, char **argv) {
 
     mqd_t readQueue = open_read_queue(QUEUE_READ_NAME);
     printf(STDOUT_PREFIX "Opened queue \"%s\"\n", QUEUE_READ_NAME);
+    fflush(stdout);
 
     struct State state;
     memset(&state, 0, sizeof(state));
@@ -67,6 +72,7 @@ int main(int argc, char **argv) {
             state.laneCentreX,
             state.laneCentreY,
             state.distInFront);
+        fflush(stdout);
 
         struct timespec delay;
         delay.tv_sec = 5;
@@ -93,10 +99,12 @@ static void timespec_sum(struct timespec *dest, const struct timespec *toAdd) {
 void unlink_read_queue() {
     mq_unlink(QUEUE_READ_NAME);
     printf(STDOUT_PREFIX "Unlinked queue \"%s\"\n", QUEUE_READ_NAME);
+    fflush(stdout);
 }
 
 void sig_handler_unlink_then_exit(int signum) {
     printf(STDOUT_PREFIX "Received signal %i\n", signum);
+    fflush(stdout);
     exit(signum);
 }
 
@@ -113,6 +121,7 @@ void attach_unlink_sig_handler() {
         int error = sigaction(*cursor, &sa, NULL);
         if (error == -1) {
             perror(STDERR_PREFIX "sigaction failed");
+            fflush(stderr);
             exit(EXIT_FAILURE);
         }
     }
@@ -133,6 +142,7 @@ mqd_t open_read_queue(char *qName) {
 
     if (queue == (mqd_t) -1) {
         perror(STDERR_PREFIX "mq_open failed");
+        fflush(stderr);
         exit(EXIT_FAILURE);
     }
 
@@ -176,6 +186,7 @@ int read_message(char *message, mqd_t queue, const struct timespec *timeout) {
         }
 
         perror(STDERR_PREFIX "mq_receive failed");
+        fflush(stderr);
         exit(EXIT_FAILURE);
     }
 
@@ -190,6 +201,10 @@ char *get_sender_str(int s) {
             return SNDR_VISN_STR;
         case SNDR_USND:
             return SNDR_USND_STR;
+        case SNDR_CONT:
+            return SNDR_CONT_STR;
+        case SNDR_DRIV:
+            return SNDR_DRIV_STR;
     }
 }
 
@@ -210,6 +225,7 @@ void update_sense_data(struct State *state, mqd_t readQueue) {
             STDOUT_PREFIX
             "Received message from %s\n",
             get_sender_str(sender));
+        fflush(stdout);
 
         bytesRead = read_message(message, readQueue, NULL);
     }

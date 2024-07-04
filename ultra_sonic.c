@@ -22,6 +22,7 @@ void write_message(char *buff, int distance);
 int main(int argc, char **argv) {
     mqd_t writeQueue = open_write_queue(QUEUE_WRITE_NAME);
     printf(STDOUT_PREFIX "Opened queue \"%s\"\n", QUEUE_WRITE_NAME);
+    fflush(stdout);
 
     char message[QUEUE_WRITE_SIZE];
     while(1) {
@@ -32,6 +33,7 @@ int main(int argc, char **argv) {
         mq_send(writeQueue, (char *) &message, sizeof(message), 0);
 
         printf(STDOUT_PREFIX "Sent %i\n", distance);
+        fflush(stdout);
 
         struct timespec delay = {1, 0}; // 1 second
         nanosleep(&delay, NULL);
@@ -43,11 +45,13 @@ mqd_t open_write_queue(char *qName) {
     while (q == -1) {
         if (q == (mqd_t) -1 && errno != ENOENT) {
             perror(STDERR_PREFIX "mq_open failed");
+            fflush(stderr);
             exit(EXIT_FAILURE);
         }
 
         printf(STDOUT_PREFIX "Failed to open queue \"%s\"\n", qName);
         printf(STDOUT_PREFIX "Retrying\n");
+        fflush(stdout);
 
         struct timespec delay = {0, 200000000}; // 200 ms
         nanosleep(&delay, NULL);

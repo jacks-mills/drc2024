@@ -1,3 +1,4 @@
+from sys import stdout, stderr
 from posix_ipc import *
 from time import sleep
 import struct
@@ -21,6 +22,7 @@ Y_MAX = 200
 def main():
     writeQueue = open_queue_write(QUEUE_WRITE_NAME)
     print(STDOUT_PREFIX + f"Opened queue \"{QUEUE_WRITE_NAME}\"")
+    stdout.flush()
 
     while True:
         x, y = get_centroid()
@@ -30,6 +32,7 @@ def main():
         writeQueue.send(message)
 
         print(STDOUT_PREFIX + f"Sent ({x:>3}, {y:>3})")
+        stdout.flush()
 
         sleep(1)
 
@@ -44,6 +47,7 @@ def open_queue_write(qName):
         except ExistentialError:
             print(STDOUT_PREFIX + f"Failed to open queue \"{QUEUE_WRITE_NAME}\"")
             print(STDOUT_PREFIX + f"Retrying...")
+            stdout.flush()
             sleep(0.2)
 
 
