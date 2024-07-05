@@ -38,19 +38,26 @@ def main():
     while True:
         read_message(state, readQueue, 2)
 
+        print(
+            STDOUT_PREFIX + f"State ("
+            f"{state['turningAngle']}, "
+            f"{state['setSpeed']}, "
+            f"{state['realSpeed']})")
+        stdout.flush()
+
         while(state["realSpeed"] != state["setSpeed"]):
             set_angle(state["turningAngle"]);
             set_speed(state["setSpeed"]);
 
+            speedDiff = state["realSpeed"] - state["setSpeed"]
+            state["setSpeed"] += int(speedDiff/abs(speedDiff))
+
             print(
                 STDOUT_PREFIX + f"State ("
-                f"{state['turningAngle']}, "
-                f"{state['setSpeed']}, "
-                f"{state['realSpeed']})")
+                f"{state['turningAngle']:>3}, "
+                f"{state['setSpeed']:>3}, "
+                f"{state['realSpeed']:>3})")
             stdout.flush()
-
-            speedDiff = state["realSpeed"] - state["setSpeed"]
-            state["setSpeed"] += speedDiff/abs(speedDiff)
 
             sleep(MS_PER_PERC_SPEED_CHANGE / 1000)
             read_message(state, readQueue, 0)
